@@ -8,11 +8,20 @@ const PROMPTS = {
   explain: "Explain what the user's code does in simple language for a beginner, in under 120 words. Mention any obvious bug."
 };
 
-// Change models without editing code by setting these in Vercel.
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || ""; // optional second model
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Models are tried in this order. If one is busy (503), out of free quota (429)
+// or retired (404), the next one is tried automatically.
+// To change the list without editing code, set GEMINI_MODELS in Vercel
+// as comma-separated names, e.g.  gemini-flash-lite-latest,gemini-3.5-flash-lite
+const DEFAULT_MODELS = [
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-flash-latest",
+  "gemini-3.8-flash"
+];
+const MODELS = (process.env.GEMINI_MODELS || "")
+  .split(",").map(s => s.trim()).filter(Boolean);
+const MODEL_LIST = MODELS.length ? MODELS : DEFAULT_MODELS;
 
 async function callGemini(model, mode, text) {
   const r = await fetch(
@@ -30,7 +39,8 @@ async function callGemini(model, mode, text) {
       })
     }
   );
-  const data = await r.json();
+  let data = {};
+  try { data = await r.json(); } catch (e) {}
   return { status: r.status, ok: r.ok, data };
 }
 
@@ -51,30 +61,25 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Try the main model up to 3 times if Google says it is overloaded (503),
-    // then try the optional fallback model once.
-    const attempts = [MODEL, MODEL, MODEL];
-    if (FALLBACK_MODEL) attempts.push(FALLBACK_MODEL);
-
-    let result;
-    for (let i = 0; i < attempts.length; i++) {
-      result = await callGemini(attempts[i], mode, text);
-      if (result.status !== 503) break;      // success or a different error: stop retrying
-      if (i < attempts.length - 1) await sleep(1000 * (i + 1));
+    let last;
+    for (const model of MODEL_LIST) {
+      last = await callGemini(model, mode, text);
+      if (last.ok) {
+        const parts = (last.data.candidates && last.data.candidates[0] && last.data.candidates[0].content && last.data.candidates[0].content.parts) || [];
+        const output = parts.map(p => p.text || "").join("").trim();
+        return res.status(200).json({ output: output || "No answer came back. Try rephrasing." });
+      }
+      // Busy, out of quota, or model not available: try the next model.
+      if (![503, 429, 404, 500].includes(last.status)) break;
     }
 
-    if (result.status === 503) {
-      return res.status(503).json({ error: "The AI is very busy right now. Please wait a few seconds and press Run again." });
+    if (last.status === 503 || last.status === 500) {
+      return res.status(503).json({ error: "The free AI is very busy right now. Please wait a few seconds and press Run again." });
     }
-    if (result.status === 429) {
+    if (last.status === 429 || last.status === 404) {
       return res.status(429).json({ error: "The free AI quota is used up for now. Please try again in a minute." });
     }
-    if (!result.ok) {
-      return res.status(502).json({ error: (result.data.error && result.data.error.message) || "The AI service returned an error." });
-    }
-    const parts = (result.data.candidates && result.data.candidates[0] && result.data.candidates[0].content && result.data.candidates[0].content.parts) || [];
-    const output = parts.map(p => p.text || "").join("").trim();
-    return res.status(200).json({ output: output || "No answer came back. Try rephrasing." });
+    return res.status(502).json({ error: (last.data.error && last.data.error.message) || "The AI service returned an error." });
   } catch (e) {
     return res.status(500).json({ error: "Could not reach the AI service." });
   }
