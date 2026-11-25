@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quill AI – Write, summarize and understand faster</title>
+<meta name="description" content="A small AI toolkit: ask questions, summarize text, rewrite in a better tone and explain code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4f6f3;--ink:#1b2a2f;--muted:#53656b;--teal:#0f766e;--coral:#e8512f;--panel:#fff;--line:#d3dcd8}
+  @media (prefers-color-scheme:dark){:root{--bg:#121a1c;--ink:#eaf1ee;--muted:#9bb0b0;--teal:#4fd1c0;--coral:#ff7a59;--panel:#1b2629;--line:#2c3b3f}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;font-size:1.05rem;line-height:1.6}
+  h1,h2,h3{font-family:Sora,system-ui,sans-serif;line-height:1.1;margin:0}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 1.25rem}
+  nav{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 0}
+  .logo{font-family:Sora,sans-serif;font-weight:800;font-size:1.25rem}
+  nav a{color:var(--muted);text-decoration:none;margin-left:1.25rem}
+  .hero{display:grid;grid-template-columns:1fr 1.1fr;gap:2.5rem;align-items:start;padding:3rem 0 4rem}
+  h1{font-size:clamp(2.2rem,5vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:1.15rem;margin:1.1rem 0 0;max-width:34ch}
+  .demo{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
+  .tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+  .tab{font:inherit;font-size:.95rem;padding:.4rem .8rem;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+  textarea{width:100%;min-height:130px;resize:vertical;font:inherit;padding:.7rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  .run{margin-top:.7rem;font:inherit;font-weight:700;padding:.65rem 1.2rem;border:0;border-radius:8px;background:var(--coral);color:#fff;cursor:pointer}
+  .run:disabled{opacity:.6;cursor:wait}
+  .out{margin-top:.8rem;padding:.8rem;border-radius:8px;border:1px dashed var(--line);min-height:3.2rem;white-space:pre-wrap}
+  .out.err{color:var(--coral)}
+  section{padding:3rem 0;border-top:1px solid var(--line)}
+  section h2{font-size:1.7rem;margin-bottom:1.5rem}
+  .feat{display:grid;grid-template-columns:200px 1fr;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}
+  .feat:last-child{border-bottom:0}
+  .feat h3{font-size:1.05rem}
+  .feat p{margin:0;color:var(--muted);max-width:60ch}
+  .flow{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;font-weight:500}
+  .flow span{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.5rem .8rem}
+  .flow i{font-style:normal;color:var(--muted)}
+  .note{color:var(--muted);max-width:62ch;margin-top:1rem}
+  footer{padding:2rem 0 3rem;color:var(--muted);font-size:.95rem}
+  a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+  @media (max-width:800px){.hero{grid-template-columns:1fr}.feat{grid-template-columns:1fr;gap:.3rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="logo">Quill AI</div>
+    <div><a href="#features">Features</a><a href="#how">How it works</a></div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>Get to the point faster.</h1>
+      <p class="sub">Ask questions, shorten long text, fix your tone and understand code. Try it on the right.</p>
+    </div>
+
+    <div class="demo">
+      <div class="tabs" role="tablist" aria-label="Choose a tool">
+        <button class="tab" role="tab" aria-selected="true" data-mode="chat">Ask</button>
+        <button class="tab" role="tab" aria-selected="false" data-mode="summarize">Summarize</button>
+        <button class="tab" role="tab" aria-selected="false" data-mode="rewrite">Rewrite</button>
+        <button class="tab" role="tab" aria-selected="false" data-mode="explain">Explain code</button>
+      </div>
+      <label for="input" class="sr" style="position:absolute;left:-9999px">Your text</label>
+      <textarea id="input" maxlength="4000"></textarea>
+      <button class="run" id="run">Run</button>
+      <div class="out" id="out" aria-live="polite">The answer will appear here.</div>
+    </div>
+  </header>
+
+  <section id="features">
+    <h2>What it does</h2>
+    <div class="feat"><h3>Ask</h3><p>Get a short, clear answer to any question.</p></div>
+    <div class="feat"><h3>Summarize</h3><p>Paste an article or email and get three bullet points.</p></div>
+    <div class="feat"><h3>Rewrite</h3><p>Turn a rough message into a professional, friendly one.</p></div>
+    <div class="feat"><h3>Explain code</h3><p>Paste a snippet and get a plain-language explanation and any obvious bug.</p></div>
+  </section>
+
+  <section id="how">
+    <h2>How it’s built</h2>
+    <div class="flow"><span>Browser</span><i>→</i><span>Vercel serverless function</span><i>→</i><span>AI API</span><i>→</i><span>Answer</span></div>
+    <p class="note">The page sends your text to a small server function. That function adds a task-specific instruction and calls the AI model with a secret key that never reaches the browser. It also limits input length and output size to keep costs under control.</p>
+  </section>
+
+  <footer>Built by Your Name with AI, then reviewed and edited by hand.</footer>
+</div>
+
+<script>
+  const samples = {
+    chat: "What is the difference between machine learning and AI?",
+    summarize: "Paste a long article or email here, then press Run.",
+    rewrite: "hey, i cant make the meeting tmrw, something came up. can we move it?",
+    explain: "function add(a, b) {\n  return a - b;\n}"
+  };
+  let mode = "chat";
+  const input = document.getElementById("input");
+  const out = document.getElementById("out");
+  const run = document.getElementById("run");
+  input.value = samples.chat;
+
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", "false"));
+    t.setAttribute("aria-selected", "true");
+    mode = t.dataset.mode;
+    input.value = samples[mode];
+    out.className = "out";
+    out.textContent = "The answer will appear here.";
+  }));
+
+  run.addEventListener("click", async () => {
+    const text = input.value.trim();
+    if (!text) { out.className = "out err"; out.textContent = "Type or paste something first."; return; }
+    run.disabled = true; run.textContent = "Thinking…";
+    out.className = "out"; out.textContent = "";
+    try {
+      const r = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, text })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Something went wrong.");
+      out.textContent = data.output;
+    } catch (e) {
+      out.className = "out err";
+      out.textContent = e.message;
+    } finally {
+      run.disabled = false; run.textContent = "Run";
+    }
+  });
+</script>
+</body>
+</html>
