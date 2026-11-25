@@ -17,7 +17,7 @@ A small landing page with a live AI demo: ask questions, summarize text, rewrite
 3. In **Settings → Environment Variables**, add `GEMINI_API_KEY`.
 4. Redeploy.
 
-**Live demo:**  https://ailanding-idxyh7v3h-pnakul6s-projects.vercel.app
+**Live demo:**  https://ailanding-theta.vercel.app/
 
 
 Built with AI, then reviewed and edited by hand.
